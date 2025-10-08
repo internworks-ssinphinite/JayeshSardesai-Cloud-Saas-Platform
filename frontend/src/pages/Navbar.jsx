@@ -10,16 +10,37 @@ export const Navbar = () => {
             right: 0,
             zIndex: 50,
             borderBottom: '1px solid var(--border)',
-            backgroundColor: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
         }}>
-            <div className="container" style={{ height: '4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 'bold', textDecoration: 'none', color: 'var(--foreground)' }}>
-                    <Zap style={{ height: '1.5rem', width: '1.5rem', color: 'var(--primary)' }} />
+            <div className="container" style={{ height: '4.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Link to="/" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    fontSize: '1.25rem', 
+                    fontWeight: '700', 
+                    textDecoration: 'none', 
+                    color: 'var(--foreground)',
+                    transition: 'opacity 0.2s'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '2.5rem',
+                        height: '2.5rem',
+                        borderRadius: '0.5rem',
+                        background: 'linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%)',
+                        boxShadow: '0 2px 8px rgba(109, 40, 217, 0.25)'
+                    }}>
+                        <Zap style={{ height: '1.25rem', width: '1.25rem', color: '#ffffff' }} />
+                    </div>
                     SS Infinite
                 </Link>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <Link to="/login" className="btn btn-ghost">
                         Login
                     </Link>

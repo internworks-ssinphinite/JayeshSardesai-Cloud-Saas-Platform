@@ -1,11 +1,13 @@
 /* frontend/src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --background: #ffffff;
+    --background: #f9fafb;
+    /* CHANGED from #ffffff to a light gray */
     --foreground: #020817;
     --card: #ffffff;
     --card-foreground: #020817;
@@ -56,7 +58,7 @@ body {
     justify-content: center;
     border-radius: var(--radius);
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     padding: 0.5rem 1rem;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
@@ -66,33 +68,43 @@ body {
 
 .btn-primary {
     background-color: var(--primary);
-    color: var(--primary-foreground);
+    color: #ffffff;
     border-color: var(--primary);
+    box-shadow: 0 2px 4px rgba(109, 40, 217, 0.2);
 }
 
 .btn-primary:hover {
     background-color: #5b21b6;
     border-color: #5b21b6;
+    box-shadow: 0 4px 8px rgba(109, 40, 217, 0.3);
+    transform: translateY(-1px);
 }
 
 .btn-ghost {
-    background-color: transparent;
+    background-color: #ffffff;
     color: var(--foreground);
+    border: 1.5px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-ghost:hover {
-    background-color: var(--accent);
-    color: var(--accent-foreground);
+    background-color: #f9fafb;
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
-    background-color: var(--secondary);
+    background-color: #ffffff;
     color: var(--secondary-foreground);
-    border-color: var(--border);
+    border: 1.5px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
-    background-color: #e5e7eb;
+    background-color: #f9fafb;
+    border-color: var(--primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Card Styles */

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Zap } from 'lucide-react';
+import { Zap, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false); // State for password visibility
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -54,23 +55,29 @@ const LoginPage = () => {
 
                     <div>
                         <label htmlFor="password">Password</label>
-                        <div className="mt-1">
+                        <div className="mt-1 relative">
                             <input
                                 id="password"
-                                type="password"
+                                type={showPassword ? 'text' : 'password'} // Toggle type
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className="w-full px-3 py-2 border border-border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                                 placeholder="••••••••"
                             />
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                {showPassword ? (
+                                    <EyeOff className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(false)} />
+                                ) : (
+                                    <Eye className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(true)} />
+                                )}
+                            </div>
                         </div>
                     </div>
-
                     {error && <p className="text-sm text-red-600">{error}</p>}
 
                     <div>
-                        <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '0.625rem 1rem' }}>
                             Log In
                         </button>
                     </div>

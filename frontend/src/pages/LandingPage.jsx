@@ -67,9 +67,68 @@ const LandingPage = () => {
             </section>
 
             {/* Footer */}
-            <footer style={{ padding: '2rem 0', borderTop: '1px solid var(--border)' }}>
-                <div className="container" style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                    © {new Date().getFullYear()} SS Infinite. All rights reserved.
+            <footer style={{ 
+                padding: '3rem 0', 
+                borderTop: '1px solid var(--border)',
+                backgroundColor: '#ffffff',
+                marginTop: '4rem'
+            }}>
+                <div className="container">
+                    <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        gap: '1rem',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.5rem',
+                            marginBottom: '0.5rem'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '2rem',
+                                height: '2rem',
+                                borderRadius: '0.375rem',
+                                background: 'linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%)',
+                            }}>
+                                <Zap style={{ height: '1rem', width: '1rem', color: '#ffffff' }} />
+                            </div>
+                            <span style={{ 
+                                fontSize: '1.125rem', 
+                                fontWeight: '700',
+                                color: 'var(--foreground)'
+                            }}>
+                                SS Infinite
+                            </span>
+                        </div>
+                        <p style={{ 
+                            fontSize: '0.875rem', 
+                            color: 'var(--muted-foreground)',
+                            maxWidth: '500px',
+                            margin: '0 0 1rem'
+                        }}>
+                            Unify your tools. Unleash your potential. Experience the future of integrated productivity.
+                        </p>
+                        <div style={{
+                            paddingTop: '1rem',
+                            borderTop: '1px solid var(--border)',
+                            width: '100%',
+                            maxWidth: '600px'
+                        }}>
+                            <p style={{ 
+                                fontSize: '0.8125rem', 
+                                color: 'var(--muted-foreground)',
+                                margin: 0
+                            }}>
+                                © {new Date().getFullYear()} SS Infinite. All rights reserved.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </footer>
         </div>
