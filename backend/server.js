@@ -23,7 +23,7 @@ app.locals.db = pool;
 
 async function initDatabase(db) {
     console.log('Initializing database schema...');
-    
+
     // Create pending_users table for unverified registrations
     await db.query(`
         CREATE TABLE IF NOT EXISTS pending_users (
@@ -35,7 +35,7 @@ async function initDatabase(db) {
             created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
         )
     `);
-    
+
     // Create indexes for pending_users
     await db.query(`
         CREATE INDEX IF NOT EXISTS idx_pending_users_token 
@@ -45,7 +45,7 @@ async function initDatabase(db) {
         CREATE INDEX IF NOT EXISTS idx_pending_users_expires 
         ON pending_users(verification_token_expires_at)
     `);
-    
+
     // Create users table for verified users only
     await db.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -55,7 +55,7 @@ async function initDatabase(db) {
             created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
         )
     `);
-    
+
     console.log('Database schema is up to date.');
 }
 
@@ -67,10 +67,10 @@ const port = process.env.PORT || 4000;
 async function start() {
     try {
         await initDatabase(pool);
-        
+
         // Start cleanup job to remove expired pending users (runs every 60 minutes)
         startCleanupJob(pool, 60);
-        
+
         app.listen(port, () => {
             console.log(`SS Infinite backend listening on port ${port}`);
         });

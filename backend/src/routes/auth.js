@@ -4,41 +4,47 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const crypto = require('crypto');
-const dns = require('dns').promises; // Using the promise-based version of dns
+const dns = require('dns').promises; // REMOVE THIS LINE
 const emailValidator = require('email-validator');
 const disposableDomains = require('disposable-email-domains');
-const { sendVerificationEmail } = require('../utils/email');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/email'); // Update this import
+const authMiddleware = require('../middleware/authMiddleware');
 
 const saltRounds = 10;
 const disposableDomainsSet = new Set(disposableDomains);
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-    const { email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body;
     const rawEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const db = req.app.locals.db;
 
-    if (!rawEmail || !password) {
-        return res.status(400).json({ message: 'Email and password are required.' });
+    if (!firstName || !lastName || !rawEmail || !password) {
+        return res.status(400).json({ message: 'All fields are required.' });
     }
 
     try {
-        // ✅ Step 1: Regex check (syntax validity)
+        // --- START OF VALIDATION ---
+
+        // ✅ Step 1: Basic Syntax Check (This will catch "jayeshsardesai.in")
+        // This is the most important check for format.
         if (!emailValidator.validate(rawEmail)) {
-            return res.status(400).json({ message: 'Email has an invalid format.' });
+            return res.status(400).json({ message: 'The email address has an invalid format.' });
         }
 
         const domain = rawEmail.split('@')[1];
 
-        // ✅ Step 2: Domain MX check (real mail server exists)
+        // ✅ Step 2: (OPTIONAL BUT RECOMMENDED) Domain Validity Check
+        // This checks if the domain (e.g., "gmail.com") has a mail server.
+        // It helps prevent typos like "gmal.com" but can sometimes fail on valid new domains.
         try {
             const mxRecords = await dns.resolveMx(domain);
             if (mxRecords.length === 0) {
                 return res.status(400).json({ message: 'No mail server found for the email domain.' });
             }
         } catch (error) {
-            console.error('MX record check failed:', error);
-            return res.status(400).json({ message: 'Email domain is not valid or does not exist.' });
+            console.error('MX record check failed for domain:', domain, error);
+            return res.status(400).json({ message: 'The email domain is not valid or does not exist.' });
         }
 
         // ✅ Step 3: Block disposable emails
@@ -46,7 +52,10 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'Disposable emails are not allowed.' });
         }
 
-        // ✅ Step 4: Check if email already exists in users or pending_users
+        // --- END OF VALIDATION ---
+
+
+        // Check if email already exists in users or pending_users
         const existingUser = await db.query('SELECT email FROM users WHERE email = $1', [rawEmail]);
         if (existingUser.rows.length > 0) {
             return res.status(409).json({ message: 'Email already exists.' });
@@ -57,27 +66,22 @@ router.post('/register', async (req, res) => {
             return res.status(409).json({ message: 'Email already registered. Please check your inbox for the verification link.' });
         }
 
-        // --- All validations passed, proceed with user creation ---
-
+        // ... rest of the registration logic (hashing password, inserting into pending_users, sending email)
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const verificationTokenExpiresAt = new Date(Date.now() + 3600000); // 1 hour
 
-        // Store in pending_users table instead of users table
-        const result = await db.query(
-            'INSERT INTO pending_users (email, password_hash, verification_token, verification_token_expires_at) VALUES ($1, $2, $3, $4) RETURNING id, email',
-            [rawEmail, hashedPassword, verificationToken, verificationTokenExpiresAt]
+        await db.query(
+            'INSERT INTO pending_users (first_name, last_name, email, password_hash, verification_token, verification_token_expires_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email',
+            [firstName, lastName, rawEmail, hashedPassword, verificationToken, verificationTokenExpiresAt]
         );
 
-        const pendingUser = result.rows[0];
-
-        // ✅ Step 4: Confirmation Email
-        await sendVerificationEmail(pendingUser.email, verificationToken);
+        await sendVerificationEmail(rawEmail, verificationToken);
 
         res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
 
     } catch (error) {
-        if (error.code === '23505') { // Unique constraint violation
+        if (error.code === '23505') {
             return res.status(409).json({ message: 'Email already exists.' });
         }
         console.error('Registration error:', error);
@@ -116,8 +120,8 @@ router.get('/verify-email', async (req, res) => {
         try {
             // Create the verified user in the users table
             await db.query(
-                'INSERT INTO users (email, password_hash, created_at) VALUES ($1, $2, $3)',
-                [pendingUser.email, pendingUser.password_hash, pendingUser.created_at]
+                'INSERT INTO users (first_name, last_name, email, password_hash, created_at) VALUES ($1, $2, $3, $4, $5)',
+                [pendingUser.first_name, pendingUser.last_name, pendingUser.email, pendingUser.password_hash, pendingUser.created_at]
             );
 
             // Remove from pending_users table
@@ -186,4 +190,51 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.post('/request-password-reset', authMiddleware, async (req, res) => {
+    const db = req.app.locals.db;
+    const userEmail = req.user.email; // Get email from authenticated user
+
+    try {
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const otpExpiresAt = new Date(Date.now() + 600000); // 10 minutes
+
+        await db.query('UPDATE users SET password_reset_token = $1, password_reset_expires_at = $2 WHERE email = $3', [otp, otpExpiresAt, userEmail]);
+
+        await sendPasswordResetEmail(userEmail, otp);
+
+        res.status(200).json({ message: 'Password reset OTP sent to your email.' });
+    } catch (error) {
+        console.error('Request password reset error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', authMiddleware, async (req, res) => {
+    const { otp, newPassword } = req.body;
+    const db = req.app.locals.db;
+    const userEmail = req.user.email;
+
+    if (!otp || !newPassword) {
+        return res.status(400).json({ message: 'OTP and new password are required.' });
+    }
+
+    try {
+        const result = await db.query('SELECT * FROM users WHERE email = $1 AND password_reset_token = $2', [userEmail, otp]);
+        const user = result.rows[0];
+
+        if (!user || user.password_reset_expires_at < new Date()) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        await db.query('UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires_at = NULL WHERE email = $2', [hashedPassword, userEmail]);
+
+        res.status(200).json({ message: 'Password has been reset successfully.' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 module.exports = router;

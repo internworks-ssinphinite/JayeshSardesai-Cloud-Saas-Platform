@@ -12,6 +12,7 @@ import DashboardLayout from './components/DashboardLayout'; // Import the layout
 import ServicesPage from './pages/ServicesPage'; // Import new pages
 import BillingPage from './pages/BillingPage';
 import SettingsPage from './pages/SettingsPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 function App() {
     return (
@@ -37,6 +38,7 @@ function App() {
                     <Route path="services" element={<ServicesPage />} />
                     <Route path="billing" element={<BillingPage />} />
                     <Route path="settings" element={<SettingsPage />} />
+                    <Route path="notifications" element={<NotificationsPage />} />
                 </Route>
 
                 {/* Catch-all route for 404 Not Found */}

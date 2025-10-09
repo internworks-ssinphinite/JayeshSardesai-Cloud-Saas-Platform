@@ -105,5 +105,29 @@ const sendVerificationEmail = async (email, token) => {
         throw new Error('Failed to send verification email.');
     }
 };
+const sendPasswordResetEmail = async (email, otp) => {
+    const mailOptions = {
+        from: `"SS Infinite" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: '🔒 Your Password Reset OTP - SS Infinite',
+        html: `
+            <div style="font-family: sans-serif; text-align: center; padding: 40px;">
+                <h2 style="color: #333;">Password Reset Request</h2>
+                <p>Your One-Time Password (OTP) to reset your password is:</p>
+                <p style="font-size: 24px; font-weight: bold; color: #6d28d9;">${otp}</p>
+                <p>This OTP is valid for 10 minutes.</p>
+                <p>If you did not request a password reset, please ignore this email.</p>
+            </div>
+        `,
+    };
 
-module.exports = { sendVerificationEmail };
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log('Password reset OTP sent successfully to:', email);
+    } catch (error) {
+        console.error('Error sending OTP email:', error);
+        throw new Error('Failed to send OTP email.');
+    }
+};
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail }; // Add the new function to exports

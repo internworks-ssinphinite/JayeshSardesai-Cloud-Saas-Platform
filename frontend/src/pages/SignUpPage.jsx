@@ -1,13 +1,18 @@
+// frontend/src/pages/SignUpPage.jsx
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Zap, Eye, EyeOff } from 'lucide-react'; // Impo
+import { Zap, Eye, EyeOff } from 'lucide-react';
+
 const SignUpPage = () => {
+    const [firstName, setFirstName] = useState(''); // ADD
+    const [lastName, setLastName] = useState('');   // ADD
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
-    const [showPassword, setShowPassword] = useState(false); // State for password visibility
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -18,7 +23,7 @@ const SignUpPage = () => {
             return;
         }
         try {
-            await axios.post('/api/auth/register', { email, password });
+            await axios.post('/api/auth/register', { firstName, lastName, email, password }); // ADD firstName, lastName
             navigate('/check-email');
         } catch (err) {
             setError(err.response?.data?.message || 'Sign up failed. Please try again.');
@@ -41,6 +46,39 @@ const SignUpPage = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* ADD FIRST NAME AND LAST NAME INPUTS */}
+                    <div className="flex gap-4">
+                        <div className="w-1/2">
+                            <label htmlFor="firstName">First Name</label>
+                            <div className="mt-1">
+                                <input
+                                    id="firstName"
+                                    type="text"
+                                    value={firstName}
+                                    onChange={(e) => setFirstName(e.target.value)}
+                                    required
+                                    className="w-full px-3 py-2 border border-border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="John"
+                                />
+                            </div>
+                        </div>
+                        <div className="w-1/2">
+                            <label htmlFor="lastName">Last Name</label>
+                            <div className="mt-1">
+                                <input
+                                    id="lastName"
+                                    type="text"
+                                    value={lastName}
+                                    onChange={(e) => setLastName(e.target.value)}
+                                    required
+                                    className="w-full px-3 py-2 border border-border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="Doe"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    {/* END OF ADDED INPUTS */}
+
                     <div>
                         <label htmlFor="email">Email address</label>
                         <div className="mt-1">

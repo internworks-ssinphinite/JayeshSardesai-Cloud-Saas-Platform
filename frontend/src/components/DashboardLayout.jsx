@@ -1,11 +1,11 @@
 // frontend/src/components/DashboardLayout.jsx
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, Outlet } from 'react-router-dom';
+import { NavLink, useNavigate, Outlet, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Package, CreditCard, Settings, LogOut, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Package, CreditCard, Settings, LogOut, Sparkles, Bell } from 'lucide-react';
 
 const DashboardLayout = () => {
-    const [userEmail, setUserEmail] = useState('');
+    const [user, setUser] = useState(null); // Change to user object
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -16,11 +16,10 @@ const DashboardLayout = () => {
                 return;
             }
             try {
-                // You can reuse the dashboard endpoint to get user info
                 const response = await axios.get('/api/dashboard', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setUserEmail(response.data.userEmail);
+                setUser(response.data.user); // Set the user object
             } catch (err) {
                 localStorage.removeItem('token');
                 navigate('/login');
@@ -38,6 +37,7 @@ const DashboardLayout = () => {
         { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
         { icon: Package, label: 'Services', to: '/dashboard/services' },
         { icon: CreditCard, label: 'Billing', to: '/dashboard/billing' },
+        { icon: Bell, label: 'Notifications', to: '/dashboard/notifications' }, // ADD THIS ITEM
         { icon: Settings, label: 'Settings', to: '/dashboard/settings' },
     ];
 
@@ -77,7 +77,7 @@ const DashboardLayout = () => {
                 </nav>
                 <div>
                     <div style={{ padding: '0.75rem', fontSize: '0.875rem', color: 'var(--muted-foreground)', wordBreak: 'break-all' }}>
-                        {userEmail}
+                        {user?.email} {/* Display user email */}
                     </div>
                     <button onClick={handleLogout} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', gap: '0.5rem' }}>
                         <LogOut style={{ height: '1rem', width: '1rem' }} />
@@ -89,7 +89,7 @@ const DashboardLayout = () => {
             {/* Main Content */}
             <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                    <Outlet /> {/* This is where the child pages will render */}
+                    <Outlet context={{ user }} /> {/* Pass user data to child routes */}
                 </div>
             </main>
         </div>
