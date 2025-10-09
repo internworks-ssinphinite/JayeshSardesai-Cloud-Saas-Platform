@@ -94,20 +94,20 @@ Create a `.env` file in the `backend` directory and add the following variables:
 
 ## 📁 Project Structure
 
-/
-├── backend/\n
-│   ├── src/\n
-│   │   ├── middleware/\n
-│   │   ├── routes/\n
-│   │   └── utils/\n
-│   ├── .env.example\n
-│   ├── server.js\n
-│   └── package.json\n
-└── frontend/\n
-├── src/\n
-│   ├── components/\n
-│   ├── pages/\n
-│   ├── App.jsx\n
-│   └── main.jsx\n
-├── vite.config.js\n
-└── package.json\n
+.
+├── backend/
+│   ├── src/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   └── utils/
+│   ├── .env.example
+│   ├── server.js
+│   └── package.json
+└── frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── App.jsx
+│   └── main.jsx
+├── vite.config.js
+└── package.json
