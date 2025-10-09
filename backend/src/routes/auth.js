@@ -46,21 +46,33 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'Disposable emails are not allowed.' });
         }
 
+        // ✅ Step 4: Check if email already exists in users or pending_users
+        const existingUser = await db.query('SELECT email FROM users WHERE email = $1', [rawEmail]);
+        if (existingUser.rows.length > 0) {
+            return res.status(409).json({ message: 'Email already exists.' });
+        }
+
+        const existingPendingUser = await db.query('SELECT email FROM pending_users WHERE email = $1', [rawEmail]);
+        if (existingPendingUser.rows.length > 0) {
+            return res.status(409).json({ message: 'Email already registered. Please check your inbox for the verification link.' });
+        }
+
         // --- All validations passed, proceed with user creation ---
 
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const verificationTokenExpiresAt = new Date(Date.now() + 3600000); // 1 hour
 
+        // Store in pending_users table instead of users table
         const result = await db.query(
-            'INSERT INTO users (email, password_hash, verification_token, verification_token_expires_at) VALUES ($1, $2, $3, $4) RETURNING id, email',
+            'INSERT INTO pending_users (email, password_hash, verification_token, verification_token_expires_at) VALUES ($1, $2, $3, $4) RETURNING id, email',
             [rawEmail, hashedPassword, verificationToken, verificationTokenExpiresAt]
         );
 
-        const newUser = result.rows[0];
+        const pendingUser = result.rows[0];
 
         // ✅ Step 4: Confirmation Email
-        await sendVerificationEmail(newUser.email, verificationToken);
+        await sendVerificationEmail(pendingUser.email, verificationToken);
 
         res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
 
@@ -83,22 +95,48 @@ router.get('/verify-email', async (req, res) => {
     }
 
     try {
-        const result = await db.query('SELECT * FROM users WHERE verification_token = $1', [token]);
-        const user = result.rows[0];
+        // Look for the token in pending_users table
+        const result = await db.query('SELECT * FROM pending_users WHERE verification_token = $1', [token]);
+        const pendingUser = result.rows[0];
 
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid verification token.' });
+        if (!pendingUser) {
+            return res.status(400).json({ message: 'Invalid or expired verification token.' });
         }
 
-        if (user.verification_token_expires_at < new Date()) {
-            return res.status(400).json({ message: 'Verification token has expired.' });
+        // Check if token has expired
+        if (pendingUser.verification_token_expires_at < new Date()) {
+            // Clean up expired pending user
+            await db.query('DELETE FROM pending_users WHERE id = $1', [pendingUser.id]);
+            return res.status(400).json({ message: 'Verification token has expired. Please register again.' });
         }
 
-        await db.query('UPDATE users SET is_verified = TRUE, verification_token = NULL, verification_token_expires_at = NULL WHERE id = $1', [user.id]);
+        // Begin transaction to move user from pending_users to users
+        await db.query('BEGIN');
 
-        res.status(200).json({ message: 'Email verified successfully.' });
+        try {
+            // Create the verified user in the users table
+            await db.query(
+                'INSERT INTO users (email, password_hash, created_at) VALUES ($1, $2, $3)',
+                [pendingUser.email, pendingUser.password_hash, pendingUser.created_at]
+            );
+
+            // Remove from pending_users table
+            await db.query('DELETE FROM pending_users WHERE id = $1', [pendingUser.id]);
+
+            // Commit transaction
+            await db.query('COMMIT');
+
+            res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
+        } catch (error) {
+            // Rollback transaction on error
+            await db.query('ROLLBACK');
+            throw error;
+        }
     } catch (error) {
         console.error('Email verification error:', error);
+        if (error.code === '23505') { // Unique constraint violation
+            return res.status(409).json({ message: 'This email is already registered.' });
+        }
         res.status(500).json({ message: 'Internal server error' });
     }
 });
@@ -115,17 +153,20 @@ router.post('/login', async (req, res) => {
     }
 
     try {
+        // Check if user exists in verified users table
         const result = await db.query('SELECT * FROM users WHERE email = $1', [rawEmail]);
         const user = result.rows[0];
 
         if (!user) {
+            // Check if user is still pending verification
+            const pendingResult = await db.query('SELECT * FROM pending_users WHERE email = $1', [rawEmail]);
+            if (pendingResult.rows.length > 0) {
+                return res.status(401).json({ message: 'Please verify your email before logging in. Check your inbox for the verification link.' });
+            }
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        if (!user.is_verified) {
-            return res.status(401).json({ message: 'Please verify your email before logging in.' });
-        }
-
+        // All users in the users table are verified, so no need to check is_verified
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {

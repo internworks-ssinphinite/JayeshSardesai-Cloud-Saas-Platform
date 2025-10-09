@@ -12,6 +12,7 @@ console.log("----------------------------");
 const { Pool } = require('pg');
 const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
+const { startCleanupJob } = require('./src/utils/cleanup');
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -22,17 +23,39 @@ app.locals.db = pool;
 
 async function initDatabase(db) {
     console.log('Initializing database schema...');
+    
+    // Create pending_users table for unverified registrations
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS pending_users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            verification_token TEXT UNIQUE NOT NULL,
+            verification_token_expires_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    // Create indexes for pending_users
+    await db.query(`
+        CREATE INDEX IF NOT EXISTS idx_pending_users_token 
+        ON pending_users(verification_token)
+    `);
+    await db.query(`
+        CREATE INDEX IF NOT EXISTS idx_pending_users_expires 
+        ON pending_users(verification_token_expires_at)
+    `);
+    
+    // Create users table for verified users only
     await db.query(`
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             email VARCHAR(255) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
-            created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-            is_verified BOOLEAN DEFAULT FALSE
+            created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
         )
     `);
-    await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT');
-    await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires_at TIMESTAMPTZ');
+    
     console.log('Database schema is up to date.');
 }
 
@@ -44,6 +67,10 @@ const port = process.env.PORT || 4000;
 async function start() {
     try {
         await initDatabase(pool);
+        
+        // Start cleanup job to remove expired pending users (runs every 60 minutes)
+        startCleanupJob(pool, 60);
+        
         app.listen(port, () => {
             console.log(`SS Infinite backend listening on port ${port}`);
         });
