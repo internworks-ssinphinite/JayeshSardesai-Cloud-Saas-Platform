@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { FileText, FileSearch, FileCheck, BarChart3, Brain, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { FileSearch, FileCheck, BarChart3, Brain, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
 
 const ServicesPage = () => {
     const [services] = useState([
         {
             id: 1,
-            name: 'PDF Text Extraction',
-            icon: FileText,
-            description: 'Extract text content from PDF documents',
+            name: 'Document Analyzer',
+            icon: FileSearch,
+            description: 'Summarize text and analyze images in your documents.',
             status: 'active',
-            price: '$19/month',
-            usage: '1,245 / 2,000 PDFs',
-            color: '#ef4444'
+            price: '$25/month',
+            usage: '0 / 100 analyses',
+            color: '#8b5cf6',
+            link: '/dashboard/analyzer'
         },
         {
             id: 2,
@@ -22,16 +24,6 @@ const ServicesPage = () => {
             price: '$29/month',
             usage: '856 / 1,500 analyses',
             color: '#3b82f6'
-        },
-        {
-            id: 3,
-            name: 'Smart PDF Search',
-            icon: FileSearch,
-            description: 'AI-powered content search in PDFs',
-            status: 'active',
-            price: '$25/month',
-            usage: '3,420 / 5,000 searches',
-            color: '#8b5cf6'
         },
         {
             id: 4,
@@ -105,10 +97,10 @@ const ServicesPage = () => {
                                     </div>
                                 </div>
                             </div>
-                            
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
+
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
                                 gap: '0.5rem',
                                 marginBottom: '1rem',
                                 padding: '0.5rem 0.75rem',
@@ -121,8 +113,8 @@ const ServicesPage = () => {
                                 ) : (
                                     <XCircle style={{ width: '1rem', height: '1rem', color: '#6b7280' }} />
                                 )}
-                                <span style={{ 
-                                    fontSize: '0.875rem', 
+                                <span style={{
+                                    fontSize: '0.875rem',
                                     fontWeight: '600',
                                     color: service.status === 'active' ? '#10b981' : '#6b7280',
                                     textTransform: 'capitalize'
@@ -131,9 +123,9 @@ const ServicesPage = () => {
                                 </span>
                             </div>
 
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
                                 alignItems: 'center',
                                 paddingTop: '1rem',
                                 borderTop: '1px solid var(--border)'
@@ -156,12 +148,22 @@ const ServicesPage = () => {
                                 </div>
                             </div>
 
-                            <button 
-                                className={service.status === 'active' ? 'btn btn-secondary' : 'btn btn-primary'}
-                                style={{ width: '100%', marginTop: '1rem' }}
-                            >
-                                {service.status === 'active' ? 'Configure' : 'Activate Service'}
-                            </button>
+                            {service.link ? (
+                                <Link
+                                    to={service.link}
+                                    className={service.status === 'active' ? 'btn btn-secondary' : 'btn btn-primary'}
+                                    style={{ width: '100%', marginTop: '1rem' }}
+                                >
+                                    {service.status === 'active' ? 'Configure' : 'Activate Service'}
+                                </Link>
+                            ) : (
+                                <button
+                                    className={service.status === 'active' ? 'btn btn-secondary' : 'btn btn-primary'}
+                                    style={{ width: '100%', marginTop: '1rem' }}
+                                >
+                                    {service.status === 'active' ? 'Configure' : 'Activate Service'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}

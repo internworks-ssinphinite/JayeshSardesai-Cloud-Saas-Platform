@@ -8,11 +8,12 @@ import ProtectedRoute from './components/ProtectedRoute';
 import NotFoundPage from './pages/NotFoundPage';
 import CheckEmailPage from './pages/CheckEmailPage';
 import EmailVerifiedPage from './pages/EmailVerifiedPage';
-import DashboardLayout from './components/DashboardLayout'; // Import the layout
-import ServicesPage from './pages/ServicesPage'; // Import new pages
+import DashboardLayout from './components/DashboardLayout';
+import ServicesPage from './pages/ServicesPage';
 import BillingPage from './pages/BillingPage';
 import SettingsPage from './pages/SettingsPage';
 import NotificationsPage from './pages/NotificationsPage';
+import DocumentAnalyzerPage from './pages/DocumentAnalyzerPage';
 
 function App() {
     return (
@@ -39,6 +40,7 @@ function App() {
                     <Route path="billing" element={<BillingPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="notifications" element={<NotificationsPage />} />
+                    <Route path="analyzer" element={<DocumentAnalyzerPage />} />
                 </Route>
 
                 {/* Catch-all route for 404 Not Found */}

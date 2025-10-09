@@ -1,0 +1,7 @@
+Flask
+PyMuPDF
+python-docx
+Pillow
+transformers
+torch
+timm

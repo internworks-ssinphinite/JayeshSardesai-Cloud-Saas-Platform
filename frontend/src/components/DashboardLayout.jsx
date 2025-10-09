@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, Outlet, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Package, CreditCard, Settings, LogOut, Sparkles, Bell } from 'lucide-react';
+import { LayoutDashboard, Package, CreditCard, Settings, LogOut, Sparkles, Bell } from 'lucide-react'; // Removed FileText
 
 const DashboardLayout = () => {
-    const [user, setUser] = useState(null); // Change to user object
+    const [user, setUser] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -19,7 +19,7 @@ const DashboardLayout = () => {
                 const response = await axios.get('/api/dashboard', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setUser(response.data.user); // Set the user object
+                setUser(response.data.user);
             } catch (err) {
                 localStorage.removeItem('token');
                 navigate('/login');
@@ -33,11 +33,12 @@ const DashboardLayout = () => {
         navigate('/');
     };
 
+    // The direct link to Summarizer has been removed from here
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
         { icon: Package, label: 'Services', to: '/dashboard/services' },
         { icon: CreditCard, label: 'Billing', to: '/dashboard/billing' },
-        { icon: Bell, label: 'Notifications', to: '/dashboard/notifications' }, // ADD THIS ITEM
+        { icon: Bell, label: 'Notifications', to: '/dashboard/notifications' },
         { icon: Settings, label: 'Settings', to: '/dashboard/settings' },
     ];
 
