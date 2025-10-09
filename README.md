@@ -44,7 +44,7 @@ This project provides a solid foundation with essential features like user authe
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/JayeshSardesai/Saas-Platform
+    git clone https://github.com/JayeshSardesai/Saas-Platform.git
     cd Saas-Platform
     ```
 
