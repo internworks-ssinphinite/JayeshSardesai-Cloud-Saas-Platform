@@ -8,7 +8,7 @@ import fitz  # PyMuPDF
 app = Flask(__name__)
 
 # --- AI Model Loading (Self-Hosted) ---
-# This will download models on the first run.
+# This will download models on the first run inside the Space.
 print("Loading summarization model...")
 summarizer = pipeline("summarization", model="t5-small")
 print("Summarization model loaded.")
@@ -79,7 +79,7 @@ def analyze_route():
             if filename.endswith('.docx'):
                 text = extract_text_from_docx(file_stream)
             else:
-                text = file_stream.read().decode('utf-8')
+                text = file_stream.read().decode('utf-8', errors='ignore')
             
             if text.strip():
                 summary_result = summarizer(text, max_length=150, min_length=30, do_sample=False)
@@ -96,6 +96,3 @@ def analyze_route():
         error_message = f"An error occurred during analysis: {e}"
         print(error_message)
         return jsonify({'error': error_message}), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)

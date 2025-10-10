@@ -32,25 +32,33 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
 });
 
 
-// POST /api/analyze
 router.post('/analyze', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file provided.' });
         }
 
+        // --- START: MODIFIED CODE ---
+        if (!process.env.ANALYSIS_API_URL) {
+            console.error('Analysis API URL is not configured in .env file.');
+            return res.status(500).json({ message: 'Analysis service is not configured.' });
+        }
+
         const form = new FormData();
         form.append('file', req.file.buffer, req.file.originalname);
 
-        // API Key is no longer sent
-        const response = await axios.post('http://127.0.0.1:5000/analyze', form, {
+        // Use the public Hugging Face URL from the .env file
+        const analysisEndpoint = `${process.env.ANALYSIS_API_URL}/analyze`;
+
+        const response = await axios.post(analysisEndpoint, form, {
             headers: { ...form.getHeaders() }
         });
+        // --- END: MODIFIED CODE ---
 
         res.json(response.data);
 
     } catch (error) {
-        const errorMessage = error.response ? error.response.data.error : 'Internal server error during analysis';
+        const errorMessage = error.response ? (error.response.data.error || error.response.data.message) : 'Internal server error during analysis';
         const statusCode = error.response ? error.response.status : 500;
         console.error('Analysis API error:', errorMessage);
         res.status(statusCode).json({ message: errorMessage });

@@ -13,6 +13,8 @@ const { Pool } = require('pg');
 const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
 const { startCleanupJob } = require('./src/utils/cleanup');
+const paymentRoutes = require('./src/routes/payment');
+const serviceRoutes = require('./src/routes/services');
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -61,6 +63,8 @@ async function initDatabase(db) {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', dashboardRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/services', serviceRoutes);
 
 const port = process.env.PORT || 4000;
 
