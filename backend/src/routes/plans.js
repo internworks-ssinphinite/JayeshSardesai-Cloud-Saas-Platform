@@ -7,7 +7,8 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.get('/', authMiddleware, async (req, res) => {
     const db = req.app.locals.db;
     try {
-        const result = await db.query('SELECT id, name, description, price_monthly, price_yearly, analysis_credits FROM plans WHERE is_active = TRUE ORDER BY price_monthly ASC');
+        // CORRECTED QUERY: Selects the new credit columns
+        const result = await db.query('SELECT id, name, description, price_monthly, price_yearly, credits_monthly, credits_yearly FROM plans WHERE is_active = TRUE ORDER BY price_monthly ASC');
         res.json(result.rows);
     } catch (error) {
         console.error("Error fetching plans:", error);
@@ -20,6 +21,7 @@ router.get('/subscription', authMiddleware, async (req, res) => {
     const db = req.app.locals.db;
     const userId = req.user.id;
     try {
+        // CORRECTED QUERY: Calculates total_credits based on billing_cycle
         const result = await db.query(
             `SELECT 
                 s.status, 
@@ -27,7 +29,12 @@ router.get('/subscription', authMiddleware, async (req, res) => {
                 s.billing_cycle,
                 s.remaining_credits,
                 p.name as plan_name,
-                p.analysis_credits as total_credits
+                p.price_monthly,
+                p.price_yearly,
+                (CASE
+                    WHEN s.billing_cycle = 'yearly' THEN p.credits_yearly
+                    ELSE p.credits_monthly
+                END) as total_credits
              FROM subscriptions s 
              JOIN plans p ON s.plan_id = p.id 
              WHERE s.user_id = $1 AND s.status = 'active'`,
@@ -41,3 +48,4 @@ router.get('/subscription', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+

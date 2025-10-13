@@ -37,4 +37,33 @@ router.post('/:id/read', authMiddleware, async (req, res) => {
     }
 });
 
+// DELETE a single notification by its ID
+router.delete('/:id', authMiddleware, async (req, res) => {
+    const db = req.app.locals.db;
+    const userId = req.user.id;
+    const notificationId = req.params.id;
+
+    try {
+        await db.query('DELETE FROM notifications WHERE id = $1 AND user_id = $2', [notificationId, userId]);
+        res.status(200).json({ success: true, message: 'Notification deleted.' });
+    } catch (error) {
+        console.error("Error deleting notification:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+// DELETE all notifications for the logged-in user
+router.delete('/', authMiddleware, async (req, res) => {
+    const db = req.app.locals.db;
+    const userId = req.user.id;
+
+    try {
+        await db.query('DELETE FROM notifications WHERE user_id = $1', [userId]);
+        res.status(200).json({ success: true, message: 'All notifications cleared.' });
+    } catch (error) {
+        console.error("Error clearing notifications:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
 module.exports = router;

@@ -50,7 +50,7 @@ const DocumentAnalyzerPage = () => {
     };
 
     return (
-        <>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '2.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>AI Document Analyzer</h1>
                 <p style={{ color: 'var(--muted-foreground)' }}>
@@ -126,7 +126,7 @@ const DocumentAnalyzerPage = () => {
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 };
 

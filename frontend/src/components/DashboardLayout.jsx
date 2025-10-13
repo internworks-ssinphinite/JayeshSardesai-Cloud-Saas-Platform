@@ -1,42 +1,42 @@
 // frontend/src/components/DashboardLayout.jsx
-import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, Outlet, useOutletContext } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Package, CreditCard, Settings, LogOut, Sparkles, Bell } from 'lucide-react'; // Removed FileText
+import { LayoutDashboard, Package, CreditCard, Settings, LogOut, Sparkles, Bell } from 'lucide-react';
 
 const DashboardLayout = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                navigate('/login');
-                return;
-            }
-            try {
-                const response = await axios.get('/api/dashboard', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setUser(response.data.user);
-            } catch (err) {
-                localStorage.removeItem('token');
-                navigate('/login');
-            }
-        };
-        fetchUserData();
+    const fetchUserData = useCallback(async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        try {
+            const response = await axios.get('/api/dashboard', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUser(response.data.user);
+        } catch (err) {
+            localStorage.removeItem('token');
+            navigate('/login');
+        }
     }, [navigate]);
+
+    useEffect(() => {
+        fetchUserData();
+    }, [fetchUserData]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/');
     };
 
-    // The direct link to Summarizer has been removed from here
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
-        { icon: Sparkles, label: 'My Services', to: '/dashboard/my-services' }, // ADD THIS LINE
+        { icon: Sparkles, label: 'My Services', to: '/dashboard/my-services' },
         { icon: CreditCard, label: 'Plans & Billing', to: '/dashboard/billing' },
         { icon: Bell, label: 'Notifications', to: '/dashboard/notifications' },
         { icon: Settings, label: 'Settings', to: '/dashboard/settings' },
@@ -49,7 +49,6 @@ const DashboardLayout = () => {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-            {/* Sidebar */}
             <aside style={{ width: '260px', borderRight: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
                     <img src="/ss-infinite-logo.svg" alt="SS Infinite Logo" style={{ height: '2rem', width: '2rem' }} />
@@ -60,7 +59,7 @@ const DashboardLayout = () => {
                         <NavLink
                             key={item.label}
                             to={item.to}
-                            end={item.to === '/dashboard'} // Match exact path for Dashboard link
+                            end={item.to === '/dashboard'}
                             className="btn btn-ghost"
                             style={({ isActive }) => ({
                                 justifyContent: 'flex-start',
@@ -76,7 +75,7 @@ const DashboardLayout = () => {
                 </nav>
                 <div>
                     <div style={{ padding: '0.75rem', fontSize: '0.875rem', color: 'var(--muted-foreground)', wordBreak: 'break-all' }}>
-                        {user?.email} {/* Display user email */}
+                        {user?.email}
                     </div>
                     <button onClick={handleLogout} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', gap: '0.5rem' }}>
                         <LogOut style={{ height: '1rem', width: '1rem' }} />
@@ -85,10 +84,9 @@ const DashboardLayout = () => {
                 </div>
             </aside>
 
-            {/* Main Content */}
             <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                    <Outlet context={{ user }} /> {/* Pass user data to child routes */}
+                    <Outlet context={{ user, fetchUserData }} />
                 </div>
             </main>
         </div>

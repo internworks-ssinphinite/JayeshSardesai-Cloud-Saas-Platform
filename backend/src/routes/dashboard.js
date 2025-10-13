@@ -12,7 +12,14 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
         // Fetch user info and subscription info together
         const userQuery = 'SELECT first_name, last_name, email FROM users WHERE id = $1';
         const subQuery = `
-            SELECT p.name as plan_name, s.remaining_credits 
+            SELECT 
+                p.name as plan_name, 
+                s.remaining_credits,
+                s.billing_cycle,
+                (CASE
+                    WHEN s.billing_cycle = 'yearly' THEN p.credits_yearly
+                    ELSE p.credits_monthly
+                END) as total_credits
             FROM subscriptions s
             JOIN plans p ON s.plan_id = p.id
             WHERE s.user_id = $1 AND s.status = 'active'`;
@@ -37,6 +44,7 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
                 email: user.email,
                 planName: subscription ? subscription.plan_name : 'No Plan',
                 remainingCredits: subscription ? subscription.remaining_credits : 0,
+                totalCredits: subscription ? subscription.total_credits : 0,
             }
         });
     } catch (error) {
