@@ -1,11 +1,28 @@
-// frontend/src/pages/DashboardPage.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import UsageChart from '../components/UsageChart';
 import { Package, Sparkles, FileText } from 'lucide-react';
+import axios from 'axios';
 
 const DashboardPage = () => {
     const { user } = useOutletContext();
+    const [usageData, setUsageData] = useState([]);
+
+    useEffect(() => {
+        const fetchUsageData = async () => {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await axios.get('/api/usage', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUsageData(response.data);
+            } catch (error) {
+                console.error("Failed to fetch usage data", error);
+            }
+        };
+
+        fetchUsageData();
+    }, []);
 
     const stats = [
         { label: 'Current Plan', value: user?.planName || 'N/A', icon: Package },
@@ -40,7 +57,7 @@ const DashboardPage = () => {
                     <div className="card-header">
                         <h3 className="card-title" style={{ marginBottom: '1rem' }}>Monthly Usage</h3>
                         <div style={{ height: '250px', position: 'relative' }}>
-                            <UsageChart usageData={[]} />
+                            <UsageChart usageData={usageData} />
                         </div>
                     </div>
                 </div>
