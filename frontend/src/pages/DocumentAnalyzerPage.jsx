@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { FileText, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { FileText, Image as ImageIcon, Sparkles, UploadCloud } from 'lucide-react';
 
 const DocumentAnalyzerPage = () => {
     const [file, setFile] = useState(null);
@@ -9,7 +9,11 @@ const DocumentAnalyzerPage = () => {
     const [error, setError] = useState('');
 
     const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+            setError('');
+        }
     };
 
     const handleAnalyze = async () => {
@@ -35,7 +39,11 @@ const DocumentAnalyzerPage = () => {
 
             setResults(response.data);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to analyze the document.');
+            if (err.response?.status === 403) {
+                setError('You have run out of analysis credits. Please upgrade your plan in the Billing section.');
+            } else {
+                setError(err.response?.data?.message || 'Failed to analyze the document.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -53,19 +61,31 @@ const DocumentAnalyzerPage = () => {
             <div className="card">
                 <div className="card-header space-y-4">
                     <div>
-                        <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700">Upload Document</label>
+                        <label htmlFor="file-upload" style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            padding: '2rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer',
+                            backgroundColor: 'var(--muted)'
+                        }}>
+                            <UploadCloud size={40} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+                            <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+                                {file ? file.name : 'Click to upload or drag and drop'}
+                            </span>
+                            <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                                PDF, DOCX, JPG, or PNG
+                            </span>
+                        </label>
                         <input
                             id="file-upload"
                             type="file"
                             onChange={handleFileChange}
-                            style={{ width: '100%', padding: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginTop: '0.5rem' }}
+                            style={{ display: 'none' }}
                         />
                     </div>
 
                     <button
                         onClick={handleAnalyze}
                         className="btn btn-primary"
-                        disabled={isLoading}
+                        disabled={isLoading || !file}
                         style={{ width: '100%', marginTop: '1rem' }}
                     >
                         {isLoading ? 'Analyzing...' : 'Analyze Document'}

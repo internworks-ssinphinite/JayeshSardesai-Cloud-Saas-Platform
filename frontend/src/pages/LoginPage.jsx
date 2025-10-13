@@ -27,7 +27,7 @@ const LoginPage = () => {
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
                     <Link to="/" className="flex items-center justify-center gap-2 text-2xl font-bold text-foreground">
-                        <Zap className="h-7 w-7 text-primary" />
+                        <img src="/ss-infinite-logo.svg" alt="SS Infinite Logo" style={{ height: '2.5rem', width: '2.5rem' }} />
                         SS Infinite
                     </Link>
                     <h2 className="mt-6 text-2xl font-bold tracking-tight">Welcome back</h2>

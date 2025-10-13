@@ -14,8 +14,9 @@ const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
 const { startCleanupJob } = require('./src/utils/cleanup');
 const paymentRoutes = require('./src/routes/payment');
-const serviceRoutes = require('./src/routes/services');
+const planRoutes = require('./src/routes/plans'); // Changed from serviceRoutes
 const notificationRoutes = require('./src/routes/notifications');
+const usageRoutes = require('./src/routes/usage');
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -65,8 +66,9 @@ async function initDatabase(db) {
 app.use('/api/auth', authRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/services', serviceRoutes);
+app.use('/api/plans', planRoutes); // Changed from /api/services
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/usage', usageRoutes);
 
 const port = process.env.PORT || 4000;
 

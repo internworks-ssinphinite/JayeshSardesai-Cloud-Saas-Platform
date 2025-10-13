@@ -1,7 +1,9 @@
 -- Drop existing tables in reverse order of dependency to avoid errors
+DROP TABLE IF EXISTS usage_logs;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS subscriptions;
-DROP TABLE IF EXISTS services;
+DROP TABLE IF EXISTS services; -- Will be replaced by plans
+DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS pending_users;
 
@@ -29,50 +31,57 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table to store the services you offer
-CREATE TABLE services (
+-- Table to store the subscription plans you offer
+CREATE TABLE plans (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
-    price INTEGER NOT NULL, -- Storing price in the smallest currency unit (e.g., paise for INR)
-    billing_period VARCHAR(50) DEFAULT 'monthly', -- e.g., monthly, yearly, once
+    price_monthly INTEGER NOT NULL, -- Price in paise for monthly billing
+    price_yearly INTEGER NOT NULL,  -- Price in paise for yearly billing
+    analysis_credits INTEGER NOT NULL, -- Number of documents that can be analyzed
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table to track which user is subscribed to which service
+-- Table to track which user is subscribed to which plan
 CREATE TABLE subscriptions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    service_id INTEGER REFERENCES services(id) ON DELETE CASCADE NOT NULL,
+    plan_id INTEGER REFERENCES plans(id) ON DELETE CASCADE NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'inactive', -- e.g., pending, active, cancelled
-    expires_at TIMESTAMP WITH TIME ZONE,
+    renews_at TIMESTAMP WITH TIME ZONE,
+    billing_cycle VARCHAR(50) NOT NULL, -- 'monthly' or 'yearly'
+    remaining_credits INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, service_id) -- A user can only have one subscription per service
+    UNIQUE(user_id) -- A user can only have one active subscription at a time
 );
 
 -- Table to track transactions for subscriptions
 CREATE TABLE payments (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE SET NULL, -- Can be null for one-time payments
+    subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE SET NULL,
     razorpay_order_id VARCHAR(255) UNIQUE NOT NULL,
     razorpay_payment_id VARCHAR(255),
     razorpay_signature VARCHAR(255),
-    amount INTEGER NOT NULL, -- Amount in the smallest currency unit
+    amount INTEGER NOT NULL,
     currency VARCHAR(10) NOT NULL DEFAULT 'INR',
-    status VARCHAR(50) NOT NULL DEFAULT 'created', -- created, successful, failed
+    status VARCHAR(50) NOT NULL DEFAULT 'created',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Optional: Indexes for faster lookups
-CREATE INDEX idx_pending_users_token ON pending_users(verification_token);
-CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX idx_payments_user_id ON payments(user_id);
+-- Table for tracking service usage
+CREATE TABLE usage_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    service_id INTEGER NOT NULL, -- In this case, always 1 for Document Analyzer
+    usage_count INTEGER DEFAULT 1,
+    usage_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, service_id, usage_date)
+);
 
--- Add the Document Analyzer as the first service by default
-INSERT INTO services (name, description, price) VALUES ('Document Analyzer', 'Summarize text and analyze images in your documents.', 2500); -- 2500 paise = ₹25.00
 
 -- Table for user notifications
 CREATE TABLE notifications (
@@ -84,4 +93,16 @@ CREATE TABLE notifications (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Indexes
+CREATE INDEX idx_pending_users_token ON pending_users(verification_token);
+CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX idx_payments_user_id ON payments(user_id);
+CREATE INDEX idx_usage_logs_user_id ON usage_logs(user_id);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+
+
+-- Insert the new plans
+INSERT INTO plans (name, description, price_monthly, price_yearly, analysis_credits) VALUES 
+('Basic', 'Perfect for light, occasional use.', 2500, 25000, 50), -- ₹25/mo, 50 credits
+('Pro', 'Ideal for professionals and frequent users.', 7500, 75000, 200), -- ₹75/mo, 200 credits
+('Premium', 'For power users and teams with heavy workloads.', 20000, 200000, 1000); -- ₹200/mo, 1000 credits

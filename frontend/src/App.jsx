@@ -9,10 +9,10 @@ import NotFoundPage from './pages/NotFoundPage';
 import CheckEmailPage from './pages/CheckEmailPage';
 import EmailVerifiedPage from './pages/EmailVerifiedPage';
 import DashboardLayout from './components/DashboardLayout';
-import ServicesPage from './pages/ServicesPage';
 import BillingPage from './pages/BillingPage';
 import SettingsPage from './pages/SettingsPage';
 import NotificationsPage from './pages/NotificationsPage';
+import MyServicesPage from './pages/MyServicesPage';
 import DocumentAnalyzerPage from './pages/DocumentAnalyzerPage';
 
 function App() {
@@ -36,7 +36,7 @@ function App() {
                     }
                 >
                     <Route index element={<DashboardPage />} />
-                    <Route path="services" element={<ServicesPage />} />
+                    <Route path="my-services" element={<MyServicesPage />} />
                     <Route path="billing" element={<BillingPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="notifications" element={<NotificationsPage />} />

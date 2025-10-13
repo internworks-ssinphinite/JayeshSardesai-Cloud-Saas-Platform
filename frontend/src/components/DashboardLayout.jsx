@@ -36,8 +36,8 @@ const DashboardLayout = () => {
     // The direct link to Summarizer has been removed from here
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
-        { icon: Package, label: 'Services', to: '/dashboard/services' },
-        { icon: CreditCard, label: 'Billing', to: '/dashboard/billing' },
+        { icon: Sparkles, label: 'My Services', to: '/dashboard/my-services' }, // ADD THIS LINE
+        { icon: CreditCard, label: 'Plans & Billing', to: '/dashboard/billing' },
         { icon: Bell, label: 'Notifications', to: '/dashboard/notifications' },
         { icon: Settings, label: 'Settings', to: '/dashboard/settings' },
     ];

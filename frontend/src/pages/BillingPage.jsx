@@ -1,111 +1,165 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { Calendar, CheckCircle2, CreditCard, ArrowRight } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { Calendar, CheckCircle2, Sparkles } from 'lucide-react';
 
 const BillingPage = () => {
+    const { user } = useOutletContext();
     const [subscription, setSubscription] = useState(null);
-    const [availableServices, setAvailableServices] = useState([]);
+    const [availablePlans, setAvailablePlans] = useState([]);
+    const [billingCycle, setBillingCycle] = useState('monthly');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const navigate = useNavigate();
+
+    const fetchData = async () => {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        try {
+            const [plansRes, subRes] = await Promise.all([
+                axios.get('/api/plans', { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get('/api/plans/subscription', { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+            setAvailablePlans(plansRes.data);
+            setSubscription(subRes.data);
+            setError('');
+        } catch (err) {
+            setError('Failed to load billing information. Please try again later.');
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchBillingData = async () => {
-            const token = localStorage.getItem('token');
-            setIsLoading(true);
-            try {
-                const [subsResponse, servicesResponse] = await Promise.all([
-                    axios.get('/api/services/subscriptions', { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get('/api/services', { headers: { Authorization: `Bearer ${token}` } })
-                ]);
+        fetchData();
 
-                const activeSub = subsResponse.data.find(s => s.status === 'active');
-                setSubscription(activeSub);
+        // Load Razorpay script
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
 
-                const subscribedServiceIds = new Set(subsResponse.data.map(s => s.service_id));
-                setAvailableServices(servicesResponse.data.filter(service => !subscribedServiceIds.has(service.id)));
-
-            } catch (err) {
-                setError('Failed to load billing information.');
-                console.error(err);
-            } finally {
-                setIsLoading(false);
-            }
+        return () => {
+            document.body.removeChild(script);
         };
-
-        fetchBillingData();
     }, []);
+
+    const handleChoosePlan = async (plan) => {
+        try {
+            const token = localStorage.getItem('token');
+            const { data: order } = await axios.post('/api/payment/create-order',
+                { planId: plan.id, billingCycle },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const options = {
+                key: order.key_id,
+                amount: order.amount,
+                currency: "INR",
+                name: "SS Infinite",
+                description: `Activate ${plan.name} Plan`,
+                image: "/ss-infinite-logo.svg",
+                order_id: order.id,
+                handler: async (response) => {
+                    const verificationResponse = await axios.post('/api/payment/verify-payment', response, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+
+                    if (verificationResponse.data.success) {
+                        alert(`${plan.name} plan activated successfully!`);
+                        fetchData(); // Refresh subscription data
+                    } else {
+                        alert("Payment verification failed.");
+                    }
+                },
+                prefill: {
+                    name: user ? `${user.firstName} ${user.lastName}` : "",
+                    email: user ? user.email : "",
+                },
+                theme: { color: "#6d28d9" }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+
+        } catch (error) {
+            console.error("Activation failed:", error);
+            alert("Failed to activate plan.");
+        }
+    };
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
 
-    if (isLoading) return <div>Loading your billing details...</div>;
-    if (error) return <div style={{ color: 'var(--destructive)' }}>{error}</div>;
+    if (isLoading) return <div style={{ textAlign: 'center', marginTop: '2rem' }}>Loading your billing details...</div>;
 
     return (
         <>
             <div style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '2.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Billing & Plans</h1>
-                <p style={{ color: 'var(--muted-foreground)' }}>Manage your current plan and explore other available services.</p>
+                <h1 style={{ fontSize: '2.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Plans & Billing</h1>
+                <p style={{ color: 'var(--muted-foreground)' }}>Manage your subscription and explore available plans.</p>
             </div>
 
-            {/* Current Plan Card */}
-            <h3 className="card-title" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Your Active Plan</h3>
-            <div className="card" style={{ marginBottom: '2rem', background: 'linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%)' }}>
+            {error && <div className="card" style={{ marginBottom: '2rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--destructive)' }}><div className="card-header"><p style={{ color: '#c02626' }}>{error}</p></div></div>}
+
+            <div className="card" style={{ marginBottom: '2rem' }}>
                 <div className="card-header">
+                    <h3 className="card-title">Current Subscription</h3>
                     {subscription ? (
-                        <>
-                            <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ffffff', margin: '0 0 0.5rem' }}>{subscription.name}</h2>
-                            <p style={{ fontSize: '1.125rem', color: 'rgba(255, 255, 255, 0.9)' }}>
-                                <span style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>₹{(subscription.price / 100).toFixed(2)}</span>
-                                <span style={{ fontSize: '1rem' }}>/month</span>
-                            </p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <CheckCircle2 style={{ width: '1rem', height: '1rem', color: 'rgba(255, 255, 255, 0.8)' }} />
-                                    <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)' }}>Status: Active</p>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Calendar style={{ width: '1rem', height: '1rem', color: 'rgba(255, 255, 255, 0.8)' }} />
-                                    <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)' }}>Renews on: {formatDate(subscription.expires_at)}</p>
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <div style={{ color: 'white' }}>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>No Active Plan</h2>
-                            <p style={{ opacity: 0.9 }}>Choose a plan below to get started.</p>
+                        <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+                            <div><strong>Plan:</strong> {subscription.plan_name}</div>
+                            <div><strong>Status:</strong> <span style={{ textTransform: 'capitalize' }}>{subscription.status}</span></div>
+                            <div><strong>Credits Remaining:</strong> {subscription.remaining_credits} / {subscription.total_credits}</div>
+                            <div><strong>Renews On:</strong> {formatDate(subscription.renews_at)}</div>
                         </div>
+                    ) : (
+                        <p style={{ color: 'var(--muted-foreground)', marginTop: '1rem' }}>You do not have an active subscription.</p>
                     )}
                 </div>
             </div>
 
-            {/* Available Plans Section */}
-            <h3 className="card-title" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Available Plans</h3>
-            {availableServices.length > 0 ? (
-                <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-                    {availableServices.map(service => (
-                        <div key={service.id} className="card">
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{ display: 'inline-flex', padding: '4px', backgroundColor: 'var(--muted)', borderRadius: 'var(--radius)' }}>
+                    <button onClick={() => setBillingCycle('monthly')} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: billingCycle === 'monthly' ? 'var(--primary)' : 'transparent', color: billingCycle === 'monthly' ? 'white' : 'black', cursor: 'pointer' }}>Monthly</button>
+                    <button onClick={() => setBillingCycle('yearly')} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: billingCycle === 'yearly' ? 'var(--primary)' : 'transparent', color: billingCycle === 'yearly' ? 'white' : 'black', cursor: 'pointer' }}>Yearly (Save 20%)</button>
+                </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+                {availablePlans.length > 0 ? (
+                    availablePlans.map(plan => (
+                        <div key={plan.id} className="card">
                             <div className="card-header">
-                                <h3 className="card-title">{service.name}</h3>
-                                <p className="card-description">{service.description}</p>
+                                <h3 className="card-title">{plan.name}</h3>
+                                <p className="card-description">{plan.description}</p>
                                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '1rem 0' }}>
-                                    ₹{(service.price / 100).toFixed(2)}
-                                    <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', fontWeight: 'normal' }}>/month</span>
+                                    ₹{((billingCycle === 'yearly' ? plan.price_yearly : plan.price_monthly) / 100).toFixed(2)}
+                                    <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', fontWeight: 'normal' }}>
+                                        /{billingCycle === 'yearly' ? 'year' : 'month'}
+                                    </span>
                                 </p>
-                                <button onClick={() => navigate('/dashboard/services')} className="btn btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    Activate Now <ArrowRight size={16} />
+                                <ul style={{ listStyle: 'none', padding: 0, margin: '1rem 0', color: 'var(--muted-foreground)' }}>
+                                    <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Sparkles size={16} /> {plan.analysis_credits} analysis credits
+                                    </li>
+                                </ul>
+                                <button
+                                    onClick={() => handleChoosePlan(plan)}
+                                    className="btn btn-primary"
+                                    style={{ width: '100%' }}
+                                    disabled={subscription?.plan_name === plan.name}
+                                >
+                                    {subscription?.plan_name === plan.name ? 'Current Plan' : 'Choose Plan'}
                                 </button>
                             </div>
                         </div>
-                    ))}
-                </div>
-            ) : (
-                <p>You are currently subscribed to all available services.</p>
-            )}
+                    ))
+                ) : !isLoading && !error ? (
+                    <div className="card"><div className="card-header"><p>No plans are available at this moment.</p></div></div>
+                ) : null}
+            </div>
         </>
     );
 };

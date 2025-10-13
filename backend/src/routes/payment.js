@@ -8,32 +8,35 @@ const { sendNotification } = require('../utils/notifications');
 
 router.post('/create-order', authMiddleware, async (req, res) => {
     const db = req.app.locals.db;
-    const { serviceId } = req.body; // We now receive a serviceId
+    const { planId, billingCycle } = req.body; // 'monthly' or 'yearly'
     const userId = req.user.id;
 
-    if (!serviceId) {
-        return res.status(400).json({ message: 'A service ID is required.' });
+    if (!planId || !billingCycle) {
+        return res.status(400).json({ message: 'A plan ID and billing cycle are required.' });
     }
 
     try {
-        // Fetch service details from DB
-        const serviceResult = await db.query('SELECT * FROM services WHERE id = $1', [serviceId]);
-        if (serviceResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Service not found.' });
+        const planResult = await db.query('SELECT * FROM plans WHERE id = $1', [planId]);
+        if (planResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Plan not found.' });
         }
-        const service = serviceResult.rows[0];
+        const plan = planResult.rows[0];
+        const amount = billingCycle === 'yearly' ? plan.price_yearly : plan.price_monthly;
 
-        // Create a subscription record (or find an existing inactive one)
-        let subResult = await db.query('SELECT * FROM subscriptions WHERE user_id = $1 AND service_id = $2', [userId, serviceId]);
+        let subResult = await db.query('SELECT * FROM subscriptions WHERE user_id = $1', [userId]);
         let subscription;
         if (subResult.rows.length === 0) {
             const newSub = await db.query(
-                'INSERT INTO subscriptions (user_id, service_id, status) VALUES ($1, $2, $3) RETURNING *',
-                [userId, serviceId, 'pending']
+                'INSERT INTO subscriptions (user_id, plan_id, status, billing_cycle) VALUES ($1, $2, $3, $4) RETURNING *',
+                [userId, planId, 'pending', billingCycle]
             );
             subscription = newSub.rows[0];
         } else {
-            subscription = subResult.rows[0];
+            const updatedSub = await db.query(
+                'UPDATE subscriptions SET plan_id = $1, status = $2, billing_cycle = $3 WHERE user_id = $4 RETURNING *',
+                [planId, 'pending', billingCycle, userId]
+            );
+            subscription = updatedSub.rows[0];
         }
 
         const instance = new Razorpay({
@@ -42,17 +45,16 @@ router.post('/create-order', authMiddleware, async (req, res) => {
         });
 
         const options = {
-            amount: service.price, // Amount from the database (in paise)
+            amount,
             currency: "INR",
             receipt: `sub_${subscription.id}_${new Date().getTime()}`,
         };
 
         const order = await instance.orders.create(options);
 
-        // Save the payment record
         await db.query(
             'INSERT INTO payments (user_id, subscription_id, razorpay_order_id, amount, status) VALUES ($1, $2, $3, $4, $5)',
-            [userId, subscription.id, order.id, service.price, 'created']
+            [userId, subscription.id, order.id, amount, 'created']
         );
 
         res.json({ ...order, key_id: process.env.RAZORPAY_KEY_ID });
@@ -75,34 +77,30 @@ router.post('/verify-payment', authMiddleware, async (req, res) => {
             .digest("hex");
 
         if (expectedSignature === razorpay_signature) {
-            // Find the payment record
             const paymentResult = await db.query('SELECT * FROM payments WHERE razorpay_order_id = $1', [razorpay_order_id]);
-            if (paymentResult.rows.length === 0) {
-                return res.status(404).json({ message: "Payment record not found." });
-            }
             const payment = paymentResult.rows[0];
 
-            // Update payment status
             await db.query(
                 'UPDATE payments SET status = $1, razorpay_payment_id = $2, razorpay_signature = $3 WHERE razorpay_order_id = $4',
                 ['successful', razorpay_payment_id, razorpay_signature, razorpay_order_id]
             );
 
-            // Activate the subscription
-            const expiresAt = new Date();
-            expiresAt.setMonth(expiresAt.getMonth() + 1); // Simple 1-month expiry
+            const subResult = await db.query('SELECT s.*, p.analysis_credits, p.name as plan_name FROM subscriptions s JOIN plans p ON s.plan_id = p.id WHERE s.id = $1', [payment.subscription_id]);
+            const subscription = subResult.rows[0];
+
+            const renewsAt = new Date();
+            if (subscription.billing_cycle === 'yearly') {
+                renewsAt.setFullYear(renewsAt.getFullYear() + 1);
+            } else {
+                renewsAt.setMonth(renewsAt.getMonth() + 1);
+            }
 
             await db.query(
-                'UPDATE subscriptions SET status = $1, expires_at = $2 WHERE id = $3',
-                ['active', expiresAt, payment.subscription_id]
+                'UPDATE subscriptions SET status = $1, renews_at = $2, remaining_credits = $3 WHERE id = $4',
+                ['active', renewsAt, subscription.analysis_credits, payment.subscription_id]
             );
 
-            // Fetch service name to include in the notification
-            const serviceResult = await db.query('SELECT name FROM services WHERE id = (SELECT service_id FROM subscriptions WHERE id = $1)', [payment.subscription_id]);
-            const serviceName = serviceResult.rows[0]?.name || 'a service';
-
-            // *** ADD THIS: Create a notification for successful payment ***
-            await sendNotification(db, payment.user_id, 'Service Activated!', `Your subscription for ${serviceName} has been successfully activated.`);
+            await sendNotification(db, payment.user_id, 'Plan Activated!', `Your subscription for the ${subscription.plan_name} plan has been successfully activated.`);
 
             res.json({ success: true, message: 'Payment verified and subscription activated.' });
         } else {
@@ -113,6 +111,7 @@ router.post('/verify-payment', authMiddleware, async (req, res) => {
         res.status(500).send("Internal Server Error");
     }
 });
+
 router.get('/invoices', authMiddleware, async (req, res) => {
     const db = req.app.locals.db;
     const userId = req.user.id;

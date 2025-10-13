@@ -1,12 +1,35 @@
 // frontend/src/pages/DashboardPage.jsx
-import React from 'react';
-import { Package, User, DollarSign, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useOutletContext } from 'react-router-dom';
+import UsageChart from '../components/UsageChart';
+import { Package, Sparkles, Activity } from 'lucide-react';
 
 const DashboardPage = () => {
-    // Updated stats to reflect an individual plan and active services
+    const { user } = useOutletContext();
+    const [usageData, setUsageData] = useState([]);
+
+    useEffect(() => {
+        const fetchUsageData = async () => {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await axios.get('/api/usage', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUsageData(response.data);
+            } catch (error) {
+                console.error("Failed to fetch usage data", error);
+            }
+        };
+
+        if (user) {
+            fetchUsageData();
+        }
+    }, [user]);
+
     const stats = [
-        { label: 'Active Services', value: '1', icon: Package, trend: 'Document Analyzer' },
-        { label: 'Account Type', value: 'Individual', icon: User, trend: 'Standard Plan' },
+        { label: 'Current Plan', value: user?.planName || 'N/A', icon: Package },
+        { label: 'Remaining Credits', value: user?.remainingCredits ?? 'N/A', icon: Sparkles },
     ];
 
     return (
@@ -22,12 +45,19 @@ const DashboardPage = () => {
                                 <stat.icon style={{ height: '1rem', width: '1rem', color: 'var(--muted-foreground)' }} />
                             </div>
                             <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold', margin: '0.25rem 0' }}>{stat.value}</h3>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                                <span style={{ color: 'var(--primary)' }}>{stat.trend}</span>
-                            </p>
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* Usage Chart with smaller container */}
+            <div className="card">
+                <div className="card-header">
+                    <h3 className="card-title" style={{ marginBottom: '1rem' }}>Monthly Usage</h3>
+                    <div style={{ height: '250px', position: 'relative' }}>
+                        <UsageChart usageData={usageData} />
+                    </div>
+                </div>
             </div>
         </>
     );
