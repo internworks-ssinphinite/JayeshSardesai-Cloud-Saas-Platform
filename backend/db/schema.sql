@@ -73,3 +73,15 @@ CREATE INDEX idx_payments_user_id ON payments(user_id);
 
 -- Add the Document Analyzer as the first service by default
 INSERT INTO services (name, description, price) VALUES ('Document Analyzer', 'Summarize text and analyze images in your documents.', 2500); -- 2500 paise = ₹25.00
+
+-- Table for user notifications
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);

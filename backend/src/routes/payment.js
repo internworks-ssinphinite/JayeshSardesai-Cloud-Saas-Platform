@@ -4,6 +4,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
+const { sendNotification } = require('../utils/notifications');
 
 router.post('/create-order', authMiddleware, async (req, res) => {
     const db = req.app.locals.db;
@@ -96,12 +97,43 @@ router.post('/verify-payment', authMiddleware, async (req, res) => {
                 ['active', expiresAt, payment.subscription_id]
             );
 
+            // Fetch service name to include in the notification
+            const serviceResult = await db.query('SELECT name FROM services WHERE id = (SELECT service_id FROM subscriptions WHERE id = $1)', [payment.subscription_id]);
+            const serviceName = serviceResult.rows[0]?.name || 'a service';
+
+            // *** ADD THIS: Create a notification for successful payment ***
+            await sendNotification(db, payment.user_id, 'Service Activated!', `Your subscription for ${serviceName} has been successfully activated.`);
+
             res.json({ success: true, message: 'Payment verified and subscription activated.' });
         } else {
             res.status(400).json({ success: false, message: 'Payment verification failed.' });
         }
     } catch (error) {
         console.error("Verify payment error:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+router.get('/invoices', authMiddleware, async (req, res) => {
+    const db = req.app.locals.db;
+    const userId = req.user.id;
+
+    try {
+        const result = await db.query(
+            `SELECT 
+                p.id, 
+                p.razorpay_order_id, 
+                p.razorpay_payment_id,
+                p.amount,
+                p.status,
+                p.created_at
+             FROM payments p
+             WHERE p.user_id = $1 AND p.status = 'successful'
+             ORDER BY p.created_at DESC`,
+            [userId]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error fetching invoices:", error);
         res.status(500).send("Internal Server Error");
     }
 });

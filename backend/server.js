@@ -15,6 +15,7 @@ const dashboardRoutes = require('./src/routes/dashboard');
 const { startCleanupJob } = require('./src/utils/cleanup');
 const paymentRoutes = require('./src/routes/payment');
 const serviceRoutes = require('./src/routes/services');
+const notificationRoutes = require('./src/routes/notifications');
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -65,6 +66,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 const port = process.env.PORT || 4000;
 

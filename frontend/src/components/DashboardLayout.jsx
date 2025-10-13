@@ -52,9 +52,7 @@ const DashboardLayout = () => {
             {/* Sidebar */}
             <aside style={{ width: '260px', borderRight: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-                    <div style={{ height: '2rem', width: '2rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: "rgba(109, 40, 217, 0.1)" }}>
-                        <Sparkles style={{ height: '1rem', width: '1rem', color: 'var(--primary)' }} />
-                    </div>
+                    <img src="/ss-infinite-logo.svg" alt="SS Infinite Logo" style={{ height: '2rem', width: '2rem' }} />
                     <span style={{ fontWeight: 'bold', fontSize: '1.125rem' }}>SS Infinite</span>
                 </div>
                 <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

@@ -20,8 +20,18 @@ router.get('/subscriptions', authMiddleware, async (req, res) => {
     const db = req.app.locals.db;
     const userId = req.user.id;
     try {
+        // *** MODIFIED QUERY to include service price ***
         const result = await db.query(
-            'SELECT s.id, s.status, s.expires_at, svc.name, svc.description FROM subscriptions s JOIN services svc ON s.service_id = svc.id WHERE s.user_id = $1',
+            `SELECT 
+                s.id, 
+                s.status, 
+                s.expires_at, 
+                svc.name, 
+                svc.description,
+                svc.price 
+             FROM subscriptions s 
+             JOIN services svc ON s.service_id = svc.id 
+             WHERE s.user_id = $1`,
             [userId]
         );
         res.json(result.rows);

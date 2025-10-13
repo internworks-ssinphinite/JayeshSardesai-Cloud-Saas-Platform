@@ -9,6 +9,7 @@ const emailValidator = require('email-validator');
 const disposableDomains = require('disposable-email-domains');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/email'); // Update this import
 const authMiddleware = require('../middleware/authMiddleware');
+const { sendNotification } = require('../utils/notifications');
 
 const saltRounds = 10;
 const disposableDomainsSet = new Set(disposableDomains);
@@ -129,6 +130,9 @@ router.get('/verify-email', async (req, res) => {
 
             // Commit transaction
             await db.query('COMMIT');
+            const userResult = await db.query('SELECT id FROM users WHERE email = $1', [pendingUser.email]);
+            const newUserId = userResult.rows[0].id;
+            await sendNotification(db, newUserId, 'Welcome to SS Infinite!', 'Your email has been successfully verified. Welcome aboard!');
 
             res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
         } catch (error) {
