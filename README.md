@@ -1,6 +1,5 @@
 ### README for `internworks-ssinphinite/jayeshsardesai-cloud-saas-platform`
 
-```markdown
 # SS Infinite - Cloud SaaS Platform
 
 This repository contains the codebase for the SS Infinite Cloud SaaS Platform, a fork of the [original SS Infinite project](https://github.com/JayeshSardesai/Saas-Platform). It is a full-stack application designed for building robust Software as a Service (SaaS) applications, featuring a Node.js backend, a React frontend, and a Python microservice for AI-powered document analysis.
