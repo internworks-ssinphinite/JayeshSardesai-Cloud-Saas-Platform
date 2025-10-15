@@ -1,5 +1,3 @@
-***
-
 ### README for `internworks-ssinphinite/jayeshsardesai-cloud-saas-platform`
 
 ```markdown
