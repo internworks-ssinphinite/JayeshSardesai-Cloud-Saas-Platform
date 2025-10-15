@@ -117,6 +117,7 @@ ANALYSIS_API_URL="[http://127.0.0.1:7860](http://127.0.0.1:7860)"
 # Razorpay Credentials (get these from your Razorpay dashboard)
 RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID
 RAZORPAY_KEY_SECRET=YOUR_KEY_SECRET
+```
 
 ## 📁 Project Structure
 ```bash
